@@ -1,6 +1,6 @@
 name: Rebuild Slim Packages
 
-# 检测到 CS2 更新后自动重建（也可手动触发）：
+# 自动重建（检测到 CS2 更新后触发，也可手动触发）：
 #   1. create-release: 在 cyqmq/cs2-slim-replica 计算下一个版本号并创建 Release
 #   2. build-linux / build-windows: 并行从 depot 重建 Linux/Windows 核心包并上传
 #   3. finalize: 将新 Release 标记为 Latest
