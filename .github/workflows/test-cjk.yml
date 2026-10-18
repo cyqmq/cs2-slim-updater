@@ -1,0 +1,11 @@
+name: Test CJK
+# 这是一个中文注释，测试非 ASCII 字符是否影响注册
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 中文步骤名
+        run: echo "中文测试"
+      - run: echo ok
