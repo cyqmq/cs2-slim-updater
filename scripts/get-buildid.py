@@ -54,20 +54,20 @@ def ensure_steamcmd():
     """安装 SteamCMD（仅首次运行需要）。"""
     if os.path.exists(STEAMCMD):
         return
-    print("::group::Installing SteamCMD", flush=True)
+    print("::group::Installing SteamCMD", file=sys.stderr, flush=True)
     os.makedirs(STEAMCMD_DIR, exist_ok=True)
     tarball = os.path.join("/tmp", "steamcmd_linux.tar.gz")
-    print("Downloading SteamCMD ...", flush=True)
+    print("Downloading SteamCMD ...", file=sys.stderr, flush=True)
     urllib.request.urlretrieve(STEAMCMD_URL, tarball)
     subprocess.run(["tar", "xzf", tarball, "-C", STEAMCMD_DIR], check=True)
     os.chmod(STEAMCMD, 0o755)
-    print("::endgroup::", flush=True)
+    print("::endgroup::", file=sys.stderr, flush=True)
 
 
 def fetch_appinfo():
     """运行 steamcmd 拉取 CS2 appinfo，返回输出文本。"""
     ensure_steamcmd()
-    print("Fetching appinfo for CS2 (730) ...", flush=True)
+    print("Fetching appinfo for CS2 (730) ...", file=sys.stderr, flush=True)
     # steamcmd 有时因网络/登录返回非零，但日志仍可解析，因此不 check
     with open(APPINFO_LOG, "w", encoding="utf-8") as f:
         subprocess.run(
@@ -132,7 +132,7 @@ def main():
     data = {
         "buildid": buildid,
         "depots": parse_depot_manifests(log),
-        "checked_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "checked_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     print(json.dumps(data, indent=2))
 

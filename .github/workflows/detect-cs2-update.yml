@@ -39,7 +39,11 @@ jobs:
             NEW=$(python3 -c "import json;print(json.load(open('current.json'))['buildid'])")
             echo "old=$OLD"
             echo "new=$NEW"
-            if [ "$OLD" != "$NEW" ]; then
+            if [ -z "$OLD" ]; then
+              echo "first_run=true" >> "$GITHUB_OUTPUT"
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              echo "状态文件 buildid 为空，仅记录当前 buildid，不触发重建"
+            elif [ "$OLD" != "$NEW" ]; then
               echo "changed=true" >> "$GITHUB_OUTPUT"
             else
               echo "changed=false" >> "$GITHUB_OUTPUT"
