@@ -1,0 +1,4 @@
+# 运行时生成的临时文件
+current.json
+__pycache__/
+*.pyc
