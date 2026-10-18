@@ -2,9 +2,31 @@
 # -*- coding: utf-8 -*-
 """获取 CS2 (AppID 730) 最新 public_buildid 及关键 depot manifest。
 
-用于自动检测 CS2 更新：每次运行输出 JSON：
+SteamCMD +app_info_print 730 输出结构（关键部分）：
+  "branches"
+  {
+      "public"
+      {
+          "buildid"   "25966348"
+          ...
+      }
+      ...
+  }
+  "depots"
+  {
+      "2347770"
+      {
+          "manifests"
+          {
+              "public"   "4758919807587010422"
+          }
+          ...
+      }
+  }
+
+每次运行输出 JSON：
 {
-  "buildid": "14679903",
+  "buildid": "25966348",
   "depots": {"2347770": "...", "2347773": "...", "2347771": "..."},
   "checked_at": "2026-10-18T12:00:00Z"
 }
@@ -59,28 +81,57 @@ def fetch_appinfo():
         return f.read()
 
 
-def main():
-    log = fetch_appinfo()
+def parse_buildid(log):
+    """从 branches -> public 分支提取当前 buildid。"""
+    # 精确匹配 branches 区块
+    m = re.search(r'"branches"\s*\{(?P<b>.*?)\s*\}\s*"privatebranches"', log, re.S)
+    if m:
+        pm = re.search(r'"public"\s*\{\s*"buildid"\s*"(\d+)"', m.group("b"))
+        if pm:
+            return pm.group(1)
+    # 兜底：任意位置找 public 分支
+    pm = re.search(r'"public"\s*\{\s*"buildid"\s*"(\d+)"', log)
+    if pm:
+        return pm.group(1)
+    return ""
 
-    buildid_m = re.search(r'"public_buildid"\s*"(\d+)"', log)
-    if not buildid_m:
-        print("steamcmd output tail:", file=sys.stderr)
-        print("\n".join(log.splitlines()[-40:]), file=sys.stderr)
-        sys.exit("ERROR: 无法在 steamcmd 输出中找到 public_buildid，请重试")
 
+def parse_depot_manifests(log):
+    """提取指定 depot 的 public manifest gid。
+
+    SteamCMD 输出中 manifests 是块结构：
+        "manifests"
+        {
+            "public"
+            {
+                "gid"   "2520908610273941189"
+                ...
+            }
+        }
+    """
     depots = {}
     for depot in DEPOTS:
         idx = log.find(f'"{depot}"')
         if idx == -1:
             depots[depot] = ""
             continue
-        seg = log[idx:idx + 800]
-        pm = re.search(r'"public"\s*"(\d+)"', seg)
-        depots[depot] = pm.group(1) if pm else ""
+        seg = log[idx:idx + 3000]
+        m = re.search(r'"manifests"\s*\{\s*"public"\s*\{\s*"gid"\s*"(\d+)"', seg, re.S)
+        depots[depot] = m.group(1) if m else ""
+    return depots
+
+
+def main():
+    log = fetch_appinfo()
+    buildid = parse_buildid(log)
+    if not buildid:
+        print("steamcmd output tail:", file=sys.stderr)
+        print("\n".join(log.splitlines()[-40:]), file=sys.stderr)
+        sys.exit("ERROR: 无法在 steamcmd 输出中找到 public 分支的 buildid，请重试")
 
     data = {
-        "buildid": buildid_m.group(1),
-        "depots": depots,
+        "buildid": buildid,
+        "depots": parse_depot_manifests(log),
         "checked_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     print(json.dumps(data, indent=2))
